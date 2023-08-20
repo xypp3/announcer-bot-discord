@@ -48,12 +48,12 @@ async def on_ready():
                 except:
                     raise ValueError("Cannot create role on bot init")
 
+            # search users in event and check if they have the appropriate role
             async for user in e.users():
                 member = id_to_member[user.id]
                 if member.get_role(role.id) is None:
                     try:
                         await member.add_roles(role)
-                        print("added member role")
                     except:
                         raise ValueError("add role to a member")
             # TODO: check if users dict can be null
