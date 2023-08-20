@@ -2,7 +2,7 @@ import os
 import discord
 from dotenv import load_dotenv
 from typing import Optional, List
-from discord import Role
+from discord import Role, Guild
 
 load_dotenv()
 TOKEN = str(os.getenv("DISCORD_TOKEN"))
@@ -43,9 +43,8 @@ async def on_ready():
 
             # create role if doesn't exist
             if role is None:
-                try:
-                    role = await guild.create_role(name=e.name, mentionable=True)
-                except:
+                role = await create_role_funny(guild, e.name)
+                if role is None:
                     raise ValueError("Cannot create role on bot init")
 
             # search users in event and check if they have the appropriate role
@@ -64,8 +63,7 @@ async def on_ready():
 @client.event
 async def on_scheduled_event_create(event):
     try:
-        # TODO: create a random color for group and a funny name
-        role = await event.guild.create_role(name=event.name, mentionable=True)
+        role = await create_role_funny(event.guild, event.name)
 
         # add role to member
         member = event.guild.get_member(event.creator_id)
@@ -132,13 +130,21 @@ async def on_scheduled_event_user_remove(event, user):
     print(f"remove::{user.name}::to-role::{event.name}")
 
 
-# TODO: should this be throwable or should this block try, except
 def find_role(name: str, roles: List[Role]) -> Optional[Role]:
     for r in roles:
         if name == r.name:
             return r
     return None
 
+
+async def create_role_funny(guild: Guild, name: str) -> Optional[Role]:
+    # TODO: add more funny name endings
+    try:
+        role = await guild.create_role(name=f"{name}", colour=discord.Colour.random(), mentionable=True,)
+    except:
+        return None
+
+    return role
 
 if __name__ == "__main__":
     events = []  # event "cache" though might not be necessary
