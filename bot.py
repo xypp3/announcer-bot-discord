@@ -1,6 +1,8 @@
 import os
 import discord
 from dotenv import load_dotenv
+from typing import Optional, List
+from discord import Role
 
 load_dotenv()
 TOKEN = str(os.getenv("DISCORD_TOKEN"))
@@ -13,6 +15,49 @@ client = discord.Client(intents=intents)
 @client.event
 async def on_ready():
     print(f"{client.user} has connected to Discord!")
+
+    # get all events and assign roles on startup
+    for guild in client.guilds:
+        try:
+            roles = await guild.fetch_roles()
+        except discord.HTTPException:
+            raise ValueError("Cannot fetch roles on ready")
+
+        try:
+            events = await guild.fetch_scheduled_events()
+        except discord.HTTPException:
+            raise ValueError("Events cannot be fetched on init")
+
+        try:
+            members = guild.fetch_members()
+        except (discord.HTTPException, discord.ClientException):
+            raise ValueError("Members cannot be fetched on init")
+
+        # prep member data
+        id_to_member = {}
+        async for member in members:
+            id_to_member[member.id] = member
+
+        for e in events:
+            role = find_role(e.name, roles)
+
+            # create role if doesn't exist
+            if role is None:
+                try:
+                    role = await guild.create_role(name=e.name, mentionable=True)
+                except:
+                    raise ValueError("Cannot create role on bot init")
+
+            async for user in e.users():
+                member = id_to_member[user.id]
+                if member.get_role(role.id) is None:
+                    try:
+                        await member.add_roles(role)
+                        print("added member role")
+                    except:
+                        raise ValueError("add role to a member")
+            # TODO: check if users dict can be null
+            #   cause of order of instanticiation and not empty event???
 
 
 # Create role
@@ -88,15 +133,12 @@ async def on_scheduled_event_user_remove(event, user):
 
 
 # TODO: should this be throwable or should this block try, except
-async def find_role(guild, name):
-    try:
-        roles = await guild.fetch_roles()
-        for r in roles:
-            if name == r.name:
-                return r
-        return None
-    except:
-        raise ValueError("Cannot fetch role")
+def find_role(name: str, roles: List[Role]) -> Optional[Role]:
+    for r in roles:
+        if name == r.name:
+            return r
+    return None
+
 
 if __name__ == "__main__":
     events = []  # event "cache" though might not be necessary
