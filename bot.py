@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 TOKEN = str(os.getenv("DISCORD_TOKEN"))
-# guild_id = os.getenv("GUILD_ID")
 
 intents = discord.Intents.all()
 intents.message_content = True
@@ -87,6 +86,17 @@ async def on_scheduled_event_user_remove(event, user):
 
     print(f"remove::{user.name}::to-role::{event.name}")
 
+
+# TODO: should this be throwable or should this block try, except
+async def find_role(guild, name):
+    try:
+        roles = await guild.fetch_roles()
+        for r in roles:
+            if name == r.name:
+                return r
+        return None
+    except:
+        raise ValueError("Cannot fetch role")
 
 if __name__ == "__main__":
     events = []  # event "cache" though might not be necessary
